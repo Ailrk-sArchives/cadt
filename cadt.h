@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 typedef struct CADT_Dict CADT_Dict;
-typedef struct CADT_Vector CADT_Vector;
+typedef struct CADT_Vec CADT_Vec;
 typedef struct CADT_List CADT_List;
 typedef struct CADT_Set CADT_Set;
 
@@ -15,19 +15,25 @@ CADT_Dict *CADT_Dict_new(const int keysz, const int valsz);
 CADTDictKey *CADT_Dict_put(CADT_Dict *, const CADTDictKey *key,
                            CADTDictVal *val);
 CADTDictVal *CADT_Dict_get(CADT_Dict *, const CADTDictKey *key);
+CADTDictVal *CADT_Dict_has(CADT_Dict *, const CADTDictKey *key);
 size_t *CADT_Dict_update(CADT_Dict *, CADT_Dict *);
 size_t *CADT_Dict_remove(CADT_Dict *, const CADTDictKey *const key);
 
 /* vector.c */
-CADT_Vector *CADT_Vector_new(const size_t size, const int memsz);
-CADT_Vector *CADT_Vector_init(const size_t size, const int memsz, ...);
-void CADT_Vector_insert(CADT_Vector *, const size_t idx, void *val,
+CADT_Vec *CADT_Vec_new(const size_t size, const int memsz);
+CADT_Vec *CADT_Vec_init(const size_t size, const int memsz, ...);
+void CADT_Vec_insert(CADT_Vec *, const size_t idx, void *val,
                         const size_t memsz);
-void *CADT_Vector_pop(CADT_Vector *);
-CADT_Vector *CADT_Vector_push(CADT_Vector *, void *val, const size_t memsz);
-CADT_Vector *CADT_Vector_concat(CADT_Vector *, CADT_Vector *);
-bool CADT_Vector_contains(CADT_Vector *, const void *const val);
-void CADT_Vector_clear(CADT_Vector *);
+void *const CADT_Vec_get(CADT_Vec *, const size_t idx,
+                            const size_t memsz);
+void *const CADT_Vec_pop(CADT_Vec *, const size_t memsz);
+void CADT_Vec_push(CADT_Vec *, void *val, const size_t memsz);
+CADT_Vec *CADT_Vec_concat(CADT_Vec *, CADT_Vec *);
+bool CADT_Vec_contains(CADT_Vec *, const void *const val);
+void CADT_Vec_reserve(CADT_Vec *, const size_t size);
+void CADT_Vec_clear(CADT_Vec *);
+void *const CADT_Vec_begin(CADT_Vec *);
+void *const CADT_Vec_end(CADT_Vec *);
 
 /* list.c */
 typedef void CADTListVal;
