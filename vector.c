@@ -22,8 +22,9 @@ static CADT_Vec *valloc(const size_t size, const size_t memsz) {
   if (v == NULL) {
     return NULL;
   }
+  const size_t len = size * SZ_LEN_RATIO;
   CADT_Vec u = {
-      .len = (size_t)(size * SZ_LEN_RATIO),
+      .len = len,
       .size = size,
       .memsz = memsz,
       .buf = NULL,
@@ -65,7 +66,7 @@ static size_t vbuf_shrink(CADT_Vec *v, const size_t delta) {
   if (v->size <= v->len) {
     v->size = v->len;
   }
-  void *p = realloc(v->buf, vmemspace(v));
+  void *const p = realloc(v->buf, vmemspace(v));
   if (p == NULL) {
     return 0;
   }
@@ -81,7 +82,7 @@ static size_t vbuf_clear(CADT_Vec *v) {
 /* increase vector buffer size */
 static size_t vbuf_bulk(CADT_Vec *v, const size_t delta) {
   v->len += delta;
-  void *p = realloc(v->buf, vmemspace(v));
+  void *const p = realloc(v->buf, vmemspace(v));
   if (p == NULL) {
     return -1;
   }
@@ -113,7 +114,7 @@ CADT_Vec *CADT_Vec_init(const size_t size, const int memsz, ...) {
   va_list args;
 
   va_start(args, memsz);
-  for (int i = 0; i < size; i++) {
+  for (size_t i = 0; i < size; i++) {
     const void *const val = va_arg(args, void *);
     memcpy(top, (char *)val, memsz);
     top = (char *)top + memsz;
@@ -136,18 +137,21 @@ void CADT_Vec_insert(CADT_Vec *v, const size_t idx, void *val,
 }
 
 void *const CADT_Vec_get(CADT_Vec *v, const size_t idx, const size_t memsz) {
-  if (v->size <= 0) {
+  if (v->size <= 0 || v->memsz != memsz) {
     return NULL;
   }
+  /* always return a copy rather than a reference. */
   void *const val = malloc(v->memsz);
-  memcpy(val, (char *)v->buf + v->size, v->memsz);
-  v->size -= 1;
-  vbuf_resize(v);
+  char *needle = (char *)v->buf + idx;
+  memcpy(val, needle, memsz);
   return val;
 }
 
 void *const CADT_Vec_pop(CADT_Vec *v, const size_t memsz) {
-  return CADT_Vec_get(v, v->len, memsz);
+  void *const val = CADT_Vec_get(v, v->len, memsz);
+  v->size -= 1;
+  vbuf_resize(v);
+  return val;
 }
 
 void CADT_Vec_push(CADT_Vec *v, void *val, const size_t memsz) {
