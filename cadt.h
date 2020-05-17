@@ -21,12 +21,13 @@ size_t *CADT_Dict_remove(CADT_Dict *, const CADTDictKey *const key);
 /* vector.c */
 CADT_Vector *CADT_Vector_new(const size_t size, const int memsz);
 CADT_Vector *CADT_Vector_init(const size_t size, const int memsz, ...);
-CADT_Vector *CADT_Vector_insert(CADT_Vector *, const size_t idx, void *val,
-                                const size_t memsz);
+void CADT_Vector_insert(CADT_Vector *, const size_t idx, void *val,
+                        const size_t memsz);
 void *CADT_Vector_pop(CADT_Vector *);
 CADT_Vector *CADT_Vector_push(CADT_Vector *, void *val, const size_t memsz);
-size_t CADT_Vector_concat(CADT_Vector *, CADT_Vector *);
+CADT_Vector *CADT_Vector_concat(CADT_Vector *, CADT_Vector *);
 bool CADT_Vector_contains(CADT_Vector *, const void *const val);
+void CADT_Vector_clear(CADT_Vector *);
 
 /* list.c */
 typedef void CADTListVal;
