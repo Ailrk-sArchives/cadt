@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static int vupdate(CADT_Vec *v, const CADT_Vec u) {
+static int vecupdate(CADT_Vec *v, const CADT_Vec u) {
   if (v->memsz != u.memsz) {
     return -1;
   }
@@ -17,7 +17,7 @@ static int vupdate(CADT_Vec *v, const CADT_Vec u) {
 
 /*-- manage vector buffer --*/
 
-static CADT_Vec *valloc(const size_t size, const size_t memsz) {
+static CADT_Vec *vecalloc(const size_t size, const size_t memsz) {
   CADT_Vec *v = (CADT_Vec *)malloc(sizeof(CADT_Vec));
   if (v == NULL) {
     return NULL;
@@ -29,7 +29,7 @@ static CADT_Vec *valloc(const size_t size, const size_t memsz) {
       .memsz = memsz,
       .buf = NULL,
   };
-  if (!vupdate(v, u)) {
+  if (!vecupdate(v, u)) {
     return NULL;
   }
   v->len = size * SZ_LEN_RATIO;
@@ -104,12 +104,12 @@ static size_t vbuf_resize(CADT_Vec *v) {
 
 /*-- implement vector interface --*/
 CADT_Vec *CADT_Vec_new(const size_t size, const int memsz) {
-  CADT_Vec *vector = valloc(size, memsz);
+  CADT_Vec *vector = vecalloc(size, memsz);
   return vector;
 }
 
 CADT_Vec *CADT_Vec_init(const size_t size, const int memsz, ...) {
-  CADT_Vec *vector = valloc(size, memsz);
+  CADT_Vec *vector = vecalloc(size, memsz);
   void *top = vector->buf;
   va_list args;
 
@@ -164,7 +164,7 @@ CADT_Vec *CADT_Vec_concat(CADT_Vec *v1, CADT_Vec *v2) {
   }
   const size_t sz = v1->size + v2->size;
   const size_t memsz = v1->memsz;
-  CADT_Vec *vector = valloc(sz, memsz);
+  CADT_Vec *vector = vecalloc(sz, memsz);
 
   assert(vector->len > vector->size);
   assert(vector->size == sz);
