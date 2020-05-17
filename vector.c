@@ -4,47 +4,52 @@
 #include <stdio.h>
 #include <string.h>
 
-static void vupdate(CADT_Vec *v, const CADT_Vec u) {
+static int vupdate(CADT_Vec *v, const CADT_Vec u) {
   if (v->memsz != u.memsz) {
-    perror("changing vector type");
-    return;
+    return -1;
   }
-  if (u.size > u.buflen) {
-    perror("vector buffer length should always bigger than size");
-    return;
+  if (u.size > u.len) {
+    return -1;
   }
   *v = u;
+  return 1;
 }
 
 /*-- manage vector buffer --*/
 
 static CADT_Vec *valloc(const size_t size, const size_t memsz) {
   CADT_Vec *v = (CADT_Vec *)malloc(sizeof(CADT_Vec));
-  vupdate(v, (CADT_Vec){
-                 .buflen = (size_t)(size * SZ_LEN_RATIO),
-                 .size = size,
-                 .memsz = memsz,
-                 .buf = NULL,
-             });
-  v->buflen = size * SZ_LEN_RATIO;
+  if (v == NULL) {
+    return NULL;
+  }
+  CADT_Vec u = {
+      .len = (size_t)(size * SZ_LEN_RATIO),
+      .size = size,
+      .memsz = memsz,
+      .buf = NULL,
+  };
+  if (!vupdate(v, u)) {
+    return NULL;
+  }
+  v->len = size * SZ_LEN_RATIO;
   v->size = size;
   v->memsz = memsz;
-  /* buffer will always have 16 elemetents at least. */
-  // TODO benchmark it. if it actually save memory push the change to all apis.
-  v->buf = malloc(memsz * v->buflen);
+  v->buf = malloc(memsz * v->len);
   return v;
 }
 
+static size_t vmemspace(CADT_Vec *v) { return v->len * v->memsz; }
+
 static int vbuf_shouldshrink(CADT_Vec *v) {
-  return (v->buflen / v->size) >= SHRINK_THRESHOLD;
+  return (v->len / v->size) >= SHRINK_THRESHOLD;
 }
 
-static int vbuf_shouldbulk(CADT_Vec *v) { return v->buflen <= v->size; }
+static int vbuf_shouldbulk(CADT_Vec *v) { return v->len <= v->size; }
 
 static size_t vbuf_shrink(CADT_Vec *v, const size_t delta) {
   /* clean all content if buflen <= delta. */
-  if (v->buflen <= delta) {
-    v->buflen = 0;
+  if (v->len <= delta) {
+    v->len = 0;
     v->size = 0;
     free(v->buf);
     return 0;
@@ -52,38 +57,48 @@ static size_t vbuf_shrink(CADT_Vec *v, const size_t delta) {
   /* if memory usage is small there is no need to resize
    * set 32kB as the threshold. It can hold 4096 doubles and
    * fit in most of the L1 cache. */
-  if (v->buflen * v->memsz < 1024 * 32) {
+  if (v->len * v->memsz < 1024 * 32) {
+    return v->len;
   }
-  v->buflen -= delta;
-  if (v->size <= v->buflen) {
-    v->size = v->buflen;
+
+  v->len -= delta;
+  if (v->size <= v->len) {
+    v->size = v->len;
   }
-  v->buf = realloc(v->buf, v->memsz * v->size);
-  return v->buflen;
+  void *p = realloc(v->buf, vmemspace(v));
+  if (p == NULL) {
+    return 0;
+  }
+  v->buf = p;
+  return v->len;
 }
 
 static size_t vbuf_clear(CADT_Vec *v) {
-  vbuf_shrink(v, v->buflen);
+  vbuf_shrink(v, v->len);
   return 0;
 }
 
 /* increase vector buffer size */
 static size_t vbuf_bulk(CADT_Vec *v, const size_t delta) {
-  v->buflen += delta;
-  v->buf = realloc(v->buf, v->buflen * v->memsz);
-  return v->buflen;
+  v->len += delta;
+  void *p = realloc(v->buf, vmemspace(v));
+  if (p == NULL) {
+    return -1;
+  }
+  v->buf = p;
+  return v->len;
 }
 
 /* resize buf to size * SZ_LEN_RATIO */
 static size_t vbuf_resize(CADT_Vec *v) {
   if (vbuf_shouldshrink(v)) {
-    size_t delta = v->buflen - v->size * SZ_LEN_RATIO;
+    size_t delta = v->len - v->size * SZ_LEN_RATIO;
     vbuf_shrink(v, delta);
   } else if (vbuf_shouldbulk(v)) {
-    size_t delta = v->size * SZ_LEN_RATIO - v->buflen;
+    size_t delta = v->size * SZ_LEN_RATIO - v->len;
     vbuf_bulk(v, delta);
   }
-  return v->buflen;
+  return v->len;
 }
 
 /*-- implement vector interface --*/
@@ -94,13 +109,14 @@ CADT_Vec *CADT_Vec_new(const size_t size, const int memsz) {
 
 CADT_Vec *CADT_Vec_init(const size_t size, const int memsz, ...) {
   CADT_Vec *vector = valloc(size, memsz);
-  void *buftop = vector->buf;
+  void *top = vector->buf;
   va_list args;
+
   va_start(args, memsz);
   for (int i = 0; i < size; i++) {
-    void *val = va_arg(args, void *);
-    memcpy(buftop, (char *)val, memsz);
-    buftop = (char *)buftop + memsz;
+    const void *const val = va_arg(args, void *);
+    memcpy(top, (char *)val, memsz);
+    top = (char *)top + memsz;
   }
   va_end(args);
   return vector;
@@ -109,7 +125,7 @@ CADT_Vec *CADT_Vec_init(const size_t size, const int memsz, ...) {
 void CADT_Vec_insert(CADT_Vec *v, const size_t idx, void *val,
                      const size_t memsz) {
   if (memsz != v->memsz) {
-    perror("invalid type push into vector");
+    perror("inserting invalid vector element");
     return;
   }
   v->size += 1;
@@ -123,7 +139,7 @@ void *const CADT_Vec_get(CADT_Vec *v, const size_t idx, const size_t memsz) {
   if (v->size <= 0) {
     return NULL;
   }
-  void *val = malloc(v->memsz);
+  void *const val = malloc(v->memsz);
   memcpy(val, (char *)v->buf + v->size, v->memsz);
   v->size -= 1;
   vbuf_resize(v);
@@ -131,37 +147,38 @@ void *const CADT_Vec_get(CADT_Vec *v, const size_t idx, const size_t memsz) {
 }
 
 void *const CADT_Vec_pop(CADT_Vec *v, const size_t memsz) {
-  return CADT_Vec_get(v, v->buflen, memsz);
+  return CADT_Vec_get(v, v->len, memsz);
 }
 
 void CADT_Vec_push(CADT_Vec *v, void *val, const size_t memsz) {
-  CADT_Vec_insert(v, v->buflen, val, memsz);
+  CADT_Vec_insert(v, v->len, val, memsz);
 }
 
 CADT_Vec *CADT_Vec_concat(CADT_Vec *v1, CADT_Vec *v2) {
   if (v1->memsz != v2->memsz) {
     return NULL;
   }
-  const size_t sz1 = v1->size;
-  const size_t sz2 = v2->size;
+  const size_t sz = v1->size + v2->size;
   const size_t memsz = v1->memsz;
+  CADT_Vec *vector = valloc(sz, memsz);
 
-  CADT_Vec *vector = valloc(sz1 + sz2, v1->memsz);
-  assert(vector->buflen > vector->size);
-  assert(vector->size == sz1 + sz2);
+  assert(vector->len > vector->size);
+  assert(vector->size == sz);
 
-  memcpy(vector->buf, (char *)v1->buf, memsz * v1->size);
-  memcpy((char *)vector->buf + v1->size, (char *)v2->buf, memsz * v2->size);
+  memcpy(vector->buf, (char *)v1->buf, vmemspace(v1));
+  char *buf_end = (char *)vector->buf + v1->size;
+  memcpy(buf_end, v2->buf, vmemspace(v2));
 
   return vector;
 }
 
 bool CADT_Vec_contains(CADT_Vec *v, const void *const val) {
   size_t memsz = v->memsz;
-  char *ptr = NULL;
-  char *buf_end = (char *)v->buf + v->size;
-  for (ptr = (char *)v->buf; ptr < buf_end; ptr++) {
-    if (memcmp(val, (void *)ptr, memsz)) {
+  char *p = NULL;
+  char *buffer_end = (char *)v->buf + v->size;
+
+  for (p = (char *)v->buf; p < buffer_end; p++) {
+    if (memcmp(val, (void *)p, memsz)) {
       return 1;
     }
   }
@@ -172,7 +189,6 @@ void CADT_Vec_reserve(CADT_Vec *v, const size_t size) {
   v->size = size;
   vbuf_resize(v);
 }
-
 
 void CADT_Vec_clear(CADT_Vec *v) { vbuf_clear(v); }
 
