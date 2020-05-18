@@ -11,8 +11,8 @@ typedef struct CADT_Set CADT_Set;
 /* dict.c */
 typedef void CADTDictKey;
 typedef void CADTDictVal;
-CADT_Dict *CADT_Dict_new(const int keysz, const int memsz);
-CADTDictKey *CADT_Dict_put(CADT_Dict *, const CADTDictKey *key,
+CADT_Dict *CADT_Dict_new(const size_t keysz, const size_t valsz);
+void CADT_Dict_put(CADT_Dict *, const CADTDictKey *key,
                            CADTDictVal *val);
 CADTDictVal *CADT_Dict_get(CADT_Dict *, const CADTDictKey *key);
 CADTDictVal *CADT_Dict_has(CADT_Dict *, const CADTDictKey *key);

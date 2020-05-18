@@ -115,8 +115,9 @@ CADT_Vec *CADT_Vec_init(const size_t size, const int memsz, ...) {
 
   va_start(args, memsz);
   for (size_t i = 0; i < size; i++) {
-    const void *const val = va_arg(args, void *);
+    void *const val = va_arg(args, void *);
     memcpy(top, (char *)val, memsz);
+    free(val);
     top = (char *)top + memsz;
   }
   va_end(args);
@@ -132,7 +133,7 @@ void CADT_Vec_insert(CADT_Vec *v, const size_t idx, void *val,
   v->size += 1;
   vbuf_resize(v);
   char *needle = (char *)v->buf + idx * memsz;
-  memcpy(needle + 1, needle, memsz * v->size - idx + 1);
+  memmove(needle + memsz, needle, memsz * v->size - idx + 1);
   memcpy(needle, val, memsz);
 }
 
