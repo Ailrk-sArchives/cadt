@@ -14,7 +14,6 @@ TESTLIB = -lunity
 
 OBJS = vector.o
 
-
 .PHONY: clean test
 
 all: $(OBJS)
@@ -29,7 +28,6 @@ buildtest: $(OBJS)
 	$(CC) $(CFLAGS) $(TEST_LDFLAGS) $(TESTLIB) \
 		$(TEST_DIR)/test_$(m).c -o temp/test_$(m)
 	./temp/test_$(m)
-
 
 vector.o: vector.c vector.h cadt.h
 dict.o: dict.c dict.h cadt.h
