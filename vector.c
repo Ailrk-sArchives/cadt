@@ -58,7 +58,7 @@ static size_t vbuf_shrink(CADT_Vec *v, const size_t delta) {
   /* if memory usage is small there is no need to resize
    * set 32kB as the threshold. It can hold 4096 doubles and
    * fit in most of the L1 cache. */
-  if (v->len * v->memsz < 1024 * 32) {
+  if (vmemspace(v) < 1024 * 32) {
     return v->len;
   }
 
@@ -75,7 +75,7 @@ static size_t vbuf_shrink(CADT_Vec *v, const size_t delta) {
 }
 
 static size_t vbuf_clear(CADT_Vec *v) {
-  vbuf_shrink(v, v->len);
+  v->size = 0;
   return 0;
 }
 
@@ -137,7 +137,7 @@ void CADT_Vec_insert(CADT_Vec *v, const size_t idx, void *val,
 }
 
 void *const CADT_Vec_get(CADT_Vec *v, const size_t idx, const size_t memsz) {
-  if (v->size <= 0 || v->memsz != memsz) {
+  if (v->size <= 0 || v->memsz != memsz || idx < v->size) {
     return NULL;
   }
   /* always return a copy rather than a reference. */
