@@ -60,14 +60,24 @@ static size_t dbufmemspace(const CADT_Dict *const d) {
   return dbufitemsz(d) * d->len;
 }
 
-static void *dkey(const CADT_Dict *const d, const size_t idx) {
-  unsigned char *ptr = (unsigned char *)d->entries + idx;
-  return (void *)ptr;
+static unsigned char *dkey(unsigned char *const item) { return item; }
+static unsigned char *dval(unsigned char *const item, const size_t offset) {
+  return item + offset;
 }
 
-static void *dval(const CADT_Dict *const d, const size_t idx) {
-  unsigned char *ptr = (unsigned char *)d->entries + idx + d->keysz;
-  return (void *)ptr;
+/* open addressing */
+static size_t dopenaddr(CADT_Dict *const d, size_t idx, char mode) {
+  if (mode == 'r') {
+    while (dempty(d, idx)) {
+      idx = hash(&idx, sizeof(size_t)) % d->len;
+    }
+  } else if (mode == 'w') {
+    while (!dempty(d, idx)) {
+      idx = hash(&idx, sizeof(size_t)) % d->len;
+      d->collisions += 1;
+    }
+  }
+  return idx;
 }
 
 static CADT_Dict *dictmalloc(const size_t size, const size_t keysz,
@@ -87,9 +97,15 @@ static CADT_Dict *dictmalloc(const size_t size, const size_t keysz,
   return d;
 }
 
+/* resize either because size is greater than  80% of entries length or
+ * because it has accumulated more than 256 collisions */
 static int dbufresize(CADT_Dict *d) {
-  if (d->collisions > 0 && d->size / d->len < CADT_DICT_RESIZE_THRESHOLD) {
+  if (d->collisions >= 0 && d->size / d->len < CADT_DICT_RESIZE_THRESHOLD) {
     return -1;
+  }
+  /* reset collision counter */
+  if (d->collisions < 0) {
+    d->collisions = 0;
   }
   if (d->size < CADT_DICT_FAST_GROWTH_SZ_LIMIT) {
     d->len = d->len * CADT_DICT_FAST_GROWTH_RATE;
@@ -104,17 +120,20 @@ static int dbufresize(CADT_Dict *d) {
 /* open addressing to resolve collision. get new address by
  * double hashing */
 static size_t dput(CADT_Dict *const d, Item_ item) {
-  size_t idx = dhashaddr(d, item);
-  while (!dempty(d, idx)) {
-    idx = hash(&idx, sizeof(size_t)) % d->len;
-  }
+  unsigned char *key = dkey(item);
+  size_t idx = dopenaddr(d, dhashaddr(d, key), 'w');
+  dbufresize(d);
   unsigned char *ptr = (unsigned char *)d->entries + idx;
   memmove(ptr, item, dbufitemsz(d));
   free(item);
+  d->size += 1;
   return idx;
 }
 
-static size_t dlookup(const CADT_Dict *const d, const void *const key) {
+static void *dlookup(CADT_Dict *const d, const void *const key) {
+  const size_t idx = dopenaddr(d, dhashaddr(d, key), 'r');
+  unsigned char *ptr = (unsigned char *)d->entries + idx;
+  return dval(ptr, d->keysz);
 }
 
 CADT_Dict *CADT_Dict_new(const size_t keysz, const size_t valsz) {
@@ -130,7 +149,7 @@ void CADT_Dict_put(CADT_Dict *d, const CADTDictKey *key, CADTDictVal *val) {
   dput(d, item);
 }
 
-CADTDictVal *CADT_Dict_get(CADT_Dict *, const CADTDictKey *key);
+CADTDictVal *CADT_Dict_get(CADT_Dict *, const CADTDictKey *key) {}
 CADTDictVal *CADT_Dict_has(CADT_Dict *, const CADTDictKey *key);
 size_t *CADT_Dict_update(CADT_Dict *, CADT_Dict *);
 size_t *CADT_Dict_remove(CADT_Dict *, const CADTDictKey *const key);
