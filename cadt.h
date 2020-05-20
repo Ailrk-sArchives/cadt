@@ -9,26 +9,22 @@ typedef struct CADT_List CADT_List;
 typedef struct CADT_Set CADT_Set;
 
 /* dict.c */
-typedef void CADTDictKey;
-typedef void CADTDictVal;
 typedef enum CADTDictMode {
   OVERWRITE,
   IGNORE,
 } CADTDictMode;
 CADT_Dict *CADT_Dict_new(const size_t keysz, const size_t valsz);
-void CADT_Dict_put(CADT_Dict *, const CADTDictKey *key,
-                           CADTDictVal *val, CADTDictMode);
-CADTDictVal *CADT_Dict_get(CADT_Dict *, const CADTDictKey *key);
+void CADT_Dict_put(CADT_Dict *, const void *key, void *val, CADTDictMode);
+void *CADT_Dict_get(CADT_Dict *, const void *key);
 size_t CADT_Dict_update(CADT_Dict *, CADT_Dict *, CADTDictMode);
-size_t CADT_Dict_remove(CADT_Dict *, const CADTDictKey *const key);
+bool CADT_Dict_remove(CADT_Dict *, const void *const key);
 
 /* vector.c */
 CADT_Vec *CADT_Vec_new(const size_t size, const int memsz);
 CADT_Vec *CADT_Vec_init(const size_t size, const int memsz, ...);
 void CADT_Vec_insert(CADT_Vec *, const size_t idx, void *val,
-                        const size_t memsz);
-void *const CADT_Vec_get(CADT_Vec *, const size_t idx,
-                            const size_t memsz);
+                     const size_t memsz);
+void *const CADT_Vec_get(CADT_Vec *, const size_t idx, const size_t memsz);
 void *const CADT_Vec_pop(CADT_Vec *, const size_t memsz);
 void CADT_Vec_push(CADT_Vec *, void *val, const size_t memsz);
 CADT_Vec *CADT_Vec_concat(CADT_Vec *, CADT_Vec *);
