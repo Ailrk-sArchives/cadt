@@ -1,3 +1,6 @@
+#ifndef _CADT_VECTOR
+#define _CADT_VECTOR
+
 #include "cadt.h"
 #include <stddef.h>
 #include <stdlib.h>
@@ -10,3 +13,5 @@ typedef struct CADT_Vec {
   size_t memsz; /* size of the type stored */
   void *buf;    /* buffer for storage */
 } CADT_Vec;
+
+#endif /* ifndef SYMBOL */

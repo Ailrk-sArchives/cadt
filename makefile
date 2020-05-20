@@ -12,7 +12,7 @@ CFLAGS += -Wno-ignored-qualifiers
 TEST_LDFLAGS = -L$(TEST_DIR)
 TESTLIB = -lunity
 
-OBJS = vector.o
+OBJS = vector.o dict.o
 
 .PHONY: clean test
 

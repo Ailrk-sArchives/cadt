@@ -29,9 +29,11 @@ static CADT_Vec *vecalloc(const size_t size, const size_t memsz) {
       .memsz = memsz,
       .buf = NULL,
   };
+
   if (!vecupdate(v, u)) {
     return NULL;
   }
+
   v->len = size * SZ_LEN_RATIO;
   v->size = size;
   v->memsz = memsz;
@@ -83,9 +85,11 @@ static size_t vbuf_clear(CADT_Vec *v) {
 static size_t vbuf_bulk(CADT_Vec *v, const size_t delta) {
   v->len += delta;
   void *const p = realloc(v->buf, vmemspace(v));
+
   if (p == NULL) {
     return -1;
   }
+
   v->buf = p;
   return v->len;
 }
@@ -103,12 +107,12 @@ static size_t vbuf_resize(CADT_Vec *v) {
 }
 
 /*-- implement vector interface --*/
-CADT_Vec *CADT_Vec_new(const size_t size, const int memsz) {
+CADT_Vec *CADT_Vec_new(const size_t size, const size_t memsz) {
   CADT_Vec *vector = vecalloc(size, memsz);
   return vector;
 }
 
-CADT_Vec *CADT_Vec_init(const size_t size, const int memsz, ...) {
+CADT_Vec *CADT_Vec_init(const size_t size, const size_t memsz, ...) {
   CADT_Vec *vector = vecalloc(size, memsz);
   void *top = vector->buf;
   va_list args;
@@ -116,8 +120,10 @@ CADT_Vec *CADT_Vec_init(const size_t size, const int memsz, ...) {
   va_start(args, memsz);
   for (size_t i = 0; i < size; i++) {
     void *const val = va_arg(args, void *);
+
     memcpy(top, (char *)val, memsz);
     free(val);
+
     top = (char *)top + memsz;
   }
   va_end(args);
@@ -132,6 +138,7 @@ void CADT_Vec_insert(CADT_Vec *v, const size_t idx, void *val,
   }
   v->size += 1;
   vbuf_resize(v);
+
   char *needle = (char *)v->buf + idx * memsz;
   memmove(needle + memsz, needle, memsz * v->size - idx + 1);
   memcpy(needle, val, memsz);

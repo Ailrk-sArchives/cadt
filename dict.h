@@ -1,3 +1,6 @@
+#ifndef _CADT_DICT
+#define _CADT_DICT
+
 #include "cadt.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -14,3 +17,5 @@ typedef struct CADT_Dict {
   size_t valsz;
   uint8_t collisions; /* resize if it accumulates more than 256 collisions */
 } CADT_Dict;
+
+#endif /* ifndef SYMBOL */

@@ -5,7 +5,7 @@
 
 typedef struct CADT_Dict CADT_Dict;
 typedef struct CADT_Vec CADT_Vec;
-typedef struct CADT_List CADT_List;
+typedef struct CADT_Deque CADT_Deque;
 typedef struct CADT_Set CADT_Set;
 
 /* dict.c */
@@ -20,8 +20,8 @@ size_t CADT_Dict_update(CADT_Dict *, CADT_Dict *, CADTDictMode);
 bool CADT_Dict_remove(CADT_Dict *, const void *const key);
 
 /* vector.c */
-CADT_Vec *CADT_Vec_new(const size_t size, const int memsz);
-CADT_Vec *CADT_Vec_init(const size_t size, const int memsz, ...);
+CADT_Vec *CADT_Vec_new(const size_t size, const size_t memsz);
+CADT_Vec *CADT_Vec_init(const size_t size, const size_t memsz, ...);
 void CADT_Vec_insert(CADT_Vec *, const size_t idx, void *val,
                      const size_t memsz);
 void *const CADT_Vec_get(CADT_Vec *, const size_t idx, const size_t memsz);
@@ -34,14 +34,22 @@ void CADT_Vec_clear(CADT_Vec *);
 void *const CADT_Vec_begin(CADT_Vec *);
 void *const CADT_Vec_end(CADT_Vec *);
 
-/* list.c */
-typedef void CADTListVal;
+/* deque.c */
+CADT_Deque *CADT_Deque_new(const size_t memsz);
+CADT_Deque *CADT_Deque_init(const size_t count, const size_t memsz, ...);
+void CADT_Deque_push(CADT_Deque *, void *val);
+void CADT_Deque_pushl(CADT_Deque *, void *val);
+void *CADT_Deque_pop(CADT_Deque *);
+void *CADT_Deque_popl(CADT_Deque *);
+bool CADT_Deque_remove(CADT_Deque *, void *val);
+void CADT_Deque_reverse(CADT_Deque *);
+void *const CADT_Deque_begin(CADT_Deque *);
+void *const CADT_Deque_end(CADT_Deque *);
 
 /* set.c */
-typedef void CADTSetVal;
 CADT_Set *CADT_Set_new(const int valsz);
-size_t *CADT_Set_add(CADT_Set *, CADTSetVal *const val);
-size_t *CADT_Set_remove(CADT_Set *, CADTSetVal *const val);
+size_t *CADT_Set_add(CADT_Set *, void *const val);
+size_t *CADT_Set_remove(CADT_Set *, void *const val);
 CADT_Set *CADT_Set_union(CADT_Set *, CADT_Set *);
 CADT_Set *CADT_Set_intersect(CADT_Set *, CADT_Set *);
 CADT_Set *CADT_Set_compliment(CADT_Set *sub, CADT_Set *s);

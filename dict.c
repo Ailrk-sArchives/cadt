@@ -74,10 +74,6 @@ static bool dempty(const CADT_Dict *const d, const size_t idx) {
   return item[0] == EMPTY_ITEM && !memcmp(item, item + 1, ditemsz(d));
 }
 
-static bool dempty_val(const unsigned char *const val, const size_t valsz) {
-  return val[0] == 0 && !memcmp(val, val + 1, valsz - 1);
-}
-
 /* to check if d[idx] has the same key as item
  * note: if item has empty it return false */
 static bool samekey(const Item_ item, const unsigned char *const key,
@@ -92,6 +88,7 @@ static bool samekey(const Item_ item, const unsigned char *const key,
 static unsigned char *dfind_open_addr(CADT_Dict *const d, size_t idx,
                                       const unsigned char *const key) {
   assert(d != NULL);
+
   while (!dempty(d, idx)) {
     idx = hash(&idx, sizeof(size_t)) % d->len;
     Item_ item = ditem(d, idx);
@@ -100,6 +97,7 @@ static unsigned char *dfind_open_addr(CADT_Dict *const d, size_t idx,
     }
     d->collisions += 1;
   }
+
   return NULL;
 }
 
@@ -107,14 +105,17 @@ static CADT_Dict *dictmalloc(const size_t size, const size_t keysz,
                              const size_t valsz) {
   const size_t itemsz = keysz + valsz;
   CADT_Dict *d = (CADT_Dict *)malloc(sizeof(CADT_Dict));
+
   d->size = size;
   d->keysz = keysz;
   d->valsz = valsz;
+
   if (itemsz * size < CADT_DICT_MIN_SZ / 2) {
     d->len = (size_t)(CADT_DICT_MIN_SZ / itemsz);
   } else {
     d->len = 2 * size;
   }
+
   d->entries = (Item_)malloc(dbufmemspace(d));
   memset(d->entries, EMPTY_ITEM, dbufmemspace(d));
   return d;
@@ -127,6 +128,7 @@ static bool dbufresize(CADT_Dict *d) {
   if (d->collisions >= 0 && d->size / d->len < CADT_DICT_RESIZE_THRESHOLD) {
     return false;
   }
+
   /* reset collision counter */
   if (d->collisions < 0) {
     d->collisions = 0;
@@ -136,6 +138,7 @@ static bool dbufresize(CADT_Dict *d) {
   } else {
     d->len = d->len * CADT_DICT_SLOW_GROWTH_RATE;
   }
+
   const size_t newlen = sizeof(ditemsz(d)) * d->len;
   d->entries = (Item_)realloc(d->entries, newlen);
   return true;
@@ -146,15 +149,17 @@ static bool dbufresize(CADT_Dict *d) {
 static bool dput(CADT_Dict *const d, const Item_ item, CADTDictMode mode) {
   assert(d != NULL);
   unsigned char *key = dkey(item);
-  dbufresize(d);
   unsigned char *ptr = dfind_open_addr(d, dhash_idx(d, key), key);
+
+  d->size += 1;
+  dbufresize(d);
+
   if (mode == IGNORE) {
   } else if (mode == OVERWRITE) {
     memcpy(ptr, item, ditemsz(d));
   } else {
     return false;
   }
-  d->size += 1;
   return true;
 }
 
@@ -165,6 +170,7 @@ static Item_ dget(CADT_Dict *const d, const void *const key) {
   size_t idx = dhash_idx(d, key);
   unsigned char *val = NULL;
   Item_ item = ditem(d, idx);
+
   while (memcmp(item, key, d->keysz)) {
     idx = hash(&idx, sizeof(size_t)) % d->len;
     /* if hit empty a empty block means key not found */
@@ -173,6 +179,7 @@ static Item_ dget(CADT_Dict *const d, const void *const key) {
     }
     item = ditem(d, idx);
   }
+
   val = dval(item, d->keysz);
   return (Item_)val;
 }
@@ -183,6 +190,7 @@ CADT_Dict *CADT_Dict_new(const size_t keysz, const size_t valsz) {
   if (keysz < 0 || valsz < 0) {
     return NULL;
   }
+
   CADT_Dict *dict = dictmalloc(keysz, valsz, 0);
   return dict;
 }
@@ -194,6 +202,7 @@ void CADT_Dict_put(CADT_Dict *d, const void *key, void *val,
   }
   const size_t itemsz = ditemsz(d);
   unsigned char item[itemsz];
+
   memcpy(item, key, d->keysz);
   memcpy(&item[d->keysz], val, d->valsz);
   dput(d, item, mode);
@@ -211,7 +220,8 @@ size_t CADT_Dict_update(CADT_Dict *d1, CADT_Dict *d2, CADTDictMode mode) {
   if (d1 == NULL || d2 == NULL) {
     return 0;
   }
-  for (int i = 0; i < d2->len; i++) {
+
+  for (size_t i = 0; i < d2->len; i++) {
     if (!dempty(d2, i)) {
       unsigned char *top = ditem(d2, i);
       CADT_Dict_put(d1, dkey(top), dval(top, d2->keysz), mode);
@@ -225,6 +235,7 @@ bool CADT_Dict_remove(CADT_Dict *d, const void *const key) {
   if (d == NULL || key == NULL) {
     return false;
   }
+
   void *val = CADT_Dict_get(d, key);
   if (val == NULL) {
     return false;
