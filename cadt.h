@@ -11,13 +11,16 @@ typedef struct CADT_Set CADT_Set;
 /* dict.c */
 typedef void CADTDictKey;
 typedef void CADTDictVal;
+typedef enum CADTDictMode {
+  OVERWRITE,
+  IGNORE,
+} CADTDictMode;
 CADT_Dict *CADT_Dict_new(const size_t keysz, const size_t valsz);
 void CADT_Dict_put(CADT_Dict *, const CADTDictKey *key,
-                           CADTDictVal *val);
+                           CADTDictVal *val, CADTDictMode);
 CADTDictVal *CADT_Dict_get(CADT_Dict *, const CADTDictKey *key);
-CADTDictVal *CADT_Dict_has(CADT_Dict *, const CADTDictKey *key);
-size_t *CADT_Dict_update(CADT_Dict *, CADT_Dict *);
-size_t *CADT_Dict_remove(CADT_Dict *, const CADTDictKey *const key);
+size_t CADT_Dict_update(CADT_Dict *, CADT_Dict *, CADTDictMode);
+size_t CADT_Dict_remove(CADT_Dict *, const CADTDictKey *const key);
 
 /* vector.c */
 CADT_Vec *CADT_Vec_new(const size_t size, const int memsz);
