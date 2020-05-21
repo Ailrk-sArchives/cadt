@@ -127,3 +127,12 @@ void CADT_Deque_rotate(CADT_Deque *d, const size_t n) {
   d->tail->next = NULL;
 }
 
+
+void CADT_Deque_free(CADT_Deque *d) {
+  Block_ *current = d->head;
+  while (current != NULL) {
+    free(current->value);
+    current = current->next;
+    free(current->prev);
+  }
+}

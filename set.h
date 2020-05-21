@@ -7,6 +7,7 @@ typedef struct CADT_Set {
   size_t len;
   size_t size;
   size_t memsz;
+  char collisions;
 } CADT_Set;
 
 #endif /* ifndef _CADT_SET */

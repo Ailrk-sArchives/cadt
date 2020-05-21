@@ -34,6 +34,7 @@ void CADT_Vec_reserve(CADT_Vec *, const size_t size);
 void CADT_Vec_clear(CADT_Vec *);
 void *const CADT_Vec_begin(CADT_Vec *const);
 void *const CADT_Vec_end(CADT_Vec *const);
+void CADT_Vec_free(CADT_Vec *);
 
 /* deque.c */
 CADT_Deque *CADT_Deque_new(const size_t memsz);
@@ -44,10 +45,11 @@ void *CADT_Deque_pop(CADT_Deque *);
 void *CADT_Deque_popl(CADT_Deque *);
 bool CADT_Deque_remove(CADT_Deque *, const void *const val);
 void CADT_Deque_rotate(CADT_Deque *, const size_t n);
+void CADT_Deque_free(CADT_Deque *);
 
 /* set.c */
 CADT_Set *CADT_Set_new(const size_t memsz);
-size_t *CADT_Set_add(CADT_Set *, void *const val);
+bool CADT_Set_add(CADT_Set *, void *const val);
 size_t *CADT_Set_remove(CADT_Set *, void *const val);
 CADT_Set *CADT_Set_union(CADT_Set *, CADT_Set *);
 CADT_Set *CADT_Set_intersect(CADT_Set *, CADT_Set *);

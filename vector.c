@@ -207,3 +207,8 @@ void *const CADT_Vec_begin(CADT_Vec *const v) { return v->buf; }
 void *const CADT_Vec_end(CADT_Vec *const v) {
   return vidx(v, v->size - 1);
 }
+
+void CADT_Vec_free(CADT_Vec *v) {
+  free(v->buf);
+  free(v);
+}
