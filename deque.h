@@ -12,6 +12,7 @@ typedef struct Block_ {
 typedef struct CADT_Deque {
   Block_ *head;
   Block_ *tail;
+  size_t size;
   size_t maxlen;
   size_t memsz;
 } CADT_Deque;

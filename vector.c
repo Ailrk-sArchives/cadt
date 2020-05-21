@@ -76,6 +76,8 @@ static size_t vbuf_shrink(CADT_Vec *v, const size_t delta) {
   return v->len;
 }
 
+static void vfree(CADT_Vec *v) { free(v->buf); }
+
 static size_t vbuf_clear(CADT_Vec *v) {
   v->size = 0;
   return 0;
@@ -106,6 +108,10 @@ static size_t vbuf_resize(CADT_Vec *v) {
   return v->len;
 }
 
+static unsigned char *const vidx(const CADT_Vec *const v, const size_t idx) {
+  return (unsigned char *)v->buf + idx * v->memsz;
+}
+
 /*-- implement vector interface --*/
 CADT_Vec *CADT_Vec_new(const size_t size, const size_t memsz) {
   CADT_Vec *vector = vecalloc(size, memsz);
@@ -120,11 +126,8 @@ CADT_Vec *CADT_Vec_init(const size_t size, const size_t memsz, ...) {
   va_start(args, memsz);
   for (size_t i = 0; i < size; i++) {
     void *const val = va_arg(args, void *);
-
-    memcpy(top, (char *)val, memsz);
-    free(val);
-
-    top = (char *)top + memsz;
+    memcpy(top, (unsigned char *)val, memsz);
+    top = (unsigned char *)top + memsz;
   }
   va_end(args);
   return vector;
@@ -138,10 +141,8 @@ void CADT_Vec_insert(CADT_Vec *v, const size_t idx, void *val,
   }
   v->size += 1;
   vbuf_resize(v);
-
-  char *needle = (char *)v->buf + idx * memsz;
-  memmove(needle + memsz, needle, memsz * v->size - idx + 1);
-  memcpy(needle, val, memsz);
+  memmove(vidx(v, idx + 1), vidx(v, idx), memsz * (v->size - idx + 1));
+  memcpy(vidx(v, idx), val, memsz);
 }
 
 void *const CADT_Vec_get(CADT_Vec *v, const size_t idx, const size_t memsz) {
@@ -150,8 +151,7 @@ void *const CADT_Vec_get(CADT_Vec *v, const size_t idx, const size_t memsz) {
   }
   /* always return a copy rather than a reference. */
   void *const val = malloc(v->memsz);
-  char *needle = (char *)v->buf + idx;
-  memcpy(val, needle, memsz);
+  memcpy(val, vidx(v, idx), memsz);
   return val;
 }
 
@@ -177,20 +177,18 @@ CADT_Vec *CADT_Vec_concat(CADT_Vec *v1, CADT_Vec *v2) {
   assert(vector->len > vector->size);
   assert(vector->size == sz);
 
-  memcpy(vector->buf, (char *)v1->buf, vmemspace(v1));
-  char *buf_end = (char *)vector->buf + v1->size;
-  memcpy(buf_end, v2->buf, vmemspace(v2));
+  memcpy(vector->buf, v1->buf, vmemspace(v1));
+  memcpy((unsigned char *)vector->buf + v1->size, v2->buf, vmemspace(v2));
 
   return vector;
 }
 
 bool CADT_Vec_contains(CADT_Vec *v, const void *const val) {
   size_t memsz = v->memsz;
-  char *p = NULL;
-  char *buffer_end = (char *)v->buf + v->size;
-
-  for (p = (char *)v->buf; p < buffer_end; p++) {
-    if (memcmp(val, (void *)p, memsz)) {
+  unsigned char *p = (unsigned char *)v->buf;
+  unsigned char *buffer_end = p + v->size;
+  for (; p < buffer_end; p++) {
+    if (memcmp(val, p, memsz)) {
       return 1;
     }
   }
@@ -204,6 +202,8 @@ void CADT_Vec_reserve(CADT_Vec *v, const size_t size) {
 
 void CADT_Vec_clear(CADT_Vec *v) { vbuf_clear(v); }
 
-void *const CADT_Vec_begin(CADT_Vec *v) { return v->buf; }
+void *const CADT_Vec_begin(CADT_Vec *const v) { return v->buf; }
 
-void *const CADT_Vec_end(CADT_Vec *v) { return (char *)v->buf + v->size; }
+void *const CADT_Vec_end(CADT_Vec *const v) {
+  return vidx(v, v->size - 1);
+}

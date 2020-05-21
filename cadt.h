@@ -18,6 +18,7 @@ void CADT_Dict_put(CADT_Dict *, const void *key, void *val, CADTDictMode);
 void *CADT_Dict_get(CADT_Dict *, const void *key);
 size_t CADT_Dict_update(CADT_Dict *, CADT_Dict *, CADTDictMode);
 bool CADT_Dict_remove(CADT_Dict *, const void *const key);
+void CADT_Dict_free(CADT_Dict *);
 
 /* vector.c */
 CADT_Vec *CADT_Vec_new(const size_t size, const size_t memsz);
@@ -31,20 +32,21 @@ CADT_Vec *CADT_Vec_concat(CADT_Vec *, CADT_Vec *);
 bool CADT_Vec_contains(CADT_Vec *, const void *const val);
 void CADT_Vec_reserve(CADT_Vec *, const size_t size);
 void CADT_Vec_clear(CADT_Vec *);
-void *const CADT_Vec_begin(CADT_Vec *);
-void *const CADT_Vec_end(CADT_Vec *);
+void *const CADT_Vec_begin(CADT_Vec *const);
+void *const CADT_Vec_end(CADT_Vec *const);
 
 /* deque.c */
 CADT_Deque *CADT_Deque_new(const size_t memsz);
 CADT_Deque *CADT_Deque_init(const size_t count, const size_t memsz, ...);
-void CADT_Deque_push(CADT_Deque *, void *val);
-void CADT_Deque_pushl(CADT_Deque *, void *val);
+void CADT_Deque_push(CADT_Deque *, void *const val);
+void CADT_Deque_pushl(CADT_Deque *, void *const val);
 void *CADT_Deque_pop(CADT_Deque *);
 void *CADT_Deque_popl(CADT_Deque *);
-bool CADT_Deque_remove(CADT_Deque *, void *val);
+bool CADT_Deque_remove(CADT_Deque *, const void *const val);
 void CADT_Deque_reverse(CADT_Deque *);
-void *const CADT_Deque_begin(CADT_Deque *);
-void *const CADT_Deque_end(CADT_Deque *);
+void CADT_Deque_rotate(CADT_Deque *);
+void *const CADT_Deque_begin(CADT_Deque *const);
+void *const CADT_Deque_end(CADT_Deque *const);
 
 /* set.c */
 CADT_Set *CADT_Set_new(const int valsz);

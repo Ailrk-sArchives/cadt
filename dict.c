@@ -62,10 +62,10 @@ static Item_ ditem(const CADT_Dict *const d, const size_t idx) {
   return (unsigned char *)d->entries + idx * ditemsz(d);
 }
 
-static unsigned char *dkey(unsigned char *item) { return item; }
+static unsigned char *dkey(void *item) { return (unsigned char *)item; }
 
-static unsigned char *dval(unsigned char *item, const size_t offset) {
-  return item + offset;
+static unsigned char *dval(void *item, const size_t offset) {
+  return (unsigned char *)item + offset;
 }
 
 /* check if a block is empty */
@@ -76,7 +76,7 @@ static bool dempty(const CADT_Dict *const d, const size_t idx) {
 
 /* to check if d[idx] has the same key as item
  * note: if item has empty it return false */
-static bool samekey(const Item_ item, const unsigned char *const key,
+static bool samekey(const Item_ item, const void *const key,
                     const size_t keysz) {
   return (!memcmp(key, item, keysz));
 }
@@ -86,7 +86,7 @@ static bool samekey(const Item_ item, const unsigned char *const key,
 /* open addressing overwrite mode.
  * it return the address when block contains the same key. */
 static unsigned char *dfind_open_addr(CADT_Dict *const d, size_t idx,
-                                      const unsigned char *const key) {
+                                      const void *const key) {
   assert(d != NULL);
 
   while (!dempty(d, idx)) {
@@ -109,13 +109,11 @@ static CADT_Dict *dictmalloc(const size_t size, const size_t keysz,
   d->size = size;
   d->keysz = keysz;
   d->valsz = valsz;
-
   if (itemsz * size < CADT_DICT_MIN_SZ / 2) {
     d->len = (size_t)(CADT_DICT_MIN_SZ / itemsz);
   } else {
     d->len = 2 * size;
   }
-
   d->entries = (Item_)malloc(dbufmemspace(d));
   memset(d->entries, EMPTY_ITEM, dbufmemspace(d));
   return d;
@@ -125,7 +123,7 @@ static CADT_Dict *dictmalloc(const size_t size, const size_t keysz,
  * because it has accumulated more than 256 collisions */
 static bool dbufresize(CADT_Dict *d) {
   assert(d != NULL);
-  if (d->collisions >= 0 && d->size / d->len < CADT_DICT_RESIZE_THRESHOLD) {
+ if (d->collisions >= 0 && (d->size / d->len) < CADT_DICT_RESIZE_THRESHOLD) {
     return false;
   }
 
@@ -138,9 +136,7 @@ static bool dbufresize(CADT_Dict *d) {
   } else {
     d->len = d->len * CADT_DICT_SLOW_GROWTH_RATE;
   }
-
-  const size_t newlen = sizeof(ditemsz(d)) * d->len;
-  d->entries = (Item_)realloc(d->entries, newlen);
+  d->entries = (Item_)realloc(d->entries, ditemsz(d) * d->len);
   return true;
 }
 
@@ -190,7 +186,6 @@ CADT_Dict *CADT_Dict_new(const size_t keysz, const size_t valsz) {
   if (keysz < 0 || valsz < 0) {
     return NULL;
   }
-
   CADT_Dict *dict = dictmalloc(keysz, valsz, 0);
   return dict;
 }
@@ -200,8 +195,7 @@ void CADT_Dict_put(CADT_Dict *d, const void *key, void *val,
   if (d == NULL) {
     return;
   }
-  const size_t itemsz = ditemsz(d);
-  unsigned char item[itemsz];
+  unsigned char item[ditemsz(d)];
 
   memcpy(item, key, d->keysz);
   memcpy(&item[d->keysz], val, d->valsz);
@@ -220,7 +214,6 @@ size_t CADT_Dict_update(CADT_Dict *d1, CADT_Dict *d2, CADTDictMode mode) {
   if (d1 == NULL || d2 == NULL) {
     return 0;
   }
-
   for (size_t i = 0; i < d2->len; i++) {
     if (!dempty(d2, i)) {
       unsigned char *top = ditem(d2, i);
@@ -235,12 +228,15 @@ bool CADT_Dict_remove(CADT_Dict *d, const void *const key) {
   if (d == NULL || key == NULL) {
     return false;
   }
-
   void *val = CADT_Dict_get(d, key);
   if (val == NULL) {
     return false;
   }
-  /* wipe content in val */
   memset(val, EMPTY_ITEM, d->valsz);
   return true;
+}
+
+void CADT_Dict_free(CADT_Dict *d) {
+  free(d->entries);
+  free(d);
 }
