@@ -46,7 +46,7 @@ bool CADT_Deque_remove(CADT_Deque *, const void *const val);
 void CADT_Deque_rotate(CADT_Deque *, const size_t n);
 
 /* set.c */
-CADT_Set *CADT_Set_new(const int valsz);
+CADT_Set *CADT_Set_new(const size_t memsz);
 size_t *CADT_Set_add(CADT_Set *, void *const val);
 size_t *CADT_Set_remove(CADT_Set *, void *const val);
 CADT_Set *CADT_Set_union(CADT_Set *, CADT_Set *);

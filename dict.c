@@ -26,14 +26,14 @@
  * Murmur has better specs, but it use 4 byte hashing. It is hard to use
  * it for a general purpose hashing function. FNV-1 is a little bit slower. */
 
-/* FNV-1a 64 bit hash function */
+/* fnv-1a 64 bit hash function */
 static inline uint64_t fnv1a_1byte(const uint8_t byte, uint64_t hash) {
   const static uint64_t prime = 0x100000001b3;
   return (byte ^ hash) * prime;
 }
 
 static uint64_t hash(const void *const data, size_t nbyte) {
-  /* FNV ofset basis */
+  /* fnv ofset basis */
   uint64_t hash = 0xcbf29ce484222325;
   const uint8_t *ptr = (const uint8_t *)data;
   while (nbyte--) {
@@ -50,16 +50,16 @@ static size_t dhash_idx(const CADT_Dict *const d, const void *const key) {
   return hash(key, d->keysz) % d->len;
 }
 
-static size_t ditemsz(const CADT_Dict *const d) { return d->size + d->valsz; }
+static size_t ditem_sz(const CADT_Dict *const d) { return d->size + d->valsz; }
 
 /* total memory space occupied by d->entries */
 static size_t dbufmemspace(const CADT_Dict *const d) {
-  return ditemsz(d) * d->len;
+  return ditem_sz(d) * d->len;
 }
 
 /* return an unsigned char * point to the given idx of entries in d */
 static Item_ ditem(const CADT_Dict *const d, const size_t idx) {
-  return (unsigned char *)d->entries + idx * ditemsz(d);
+  return (unsigned char *)d->entries + idx * ditem_sz(d);
 }
 
 static unsigned char *dkey(void *item) { return (unsigned char *)item; }
@@ -71,7 +71,7 @@ static unsigned char *dval(void *item, const size_t offset) {
 /* check if a block is empty */
 static bool dempty(const CADT_Dict *const d, const size_t idx) {
   unsigned char *item = ditem(d, idx);
-  return item[0] == EMPTY_ITEM && !memcmp(item, item + 1, ditemsz(d));
+  return item[0] == EMPTY_ITEM && !memcmp(item, item + 1, ditem_sz(d));
 }
 
 /* to check if d[idx] has the same key as item
@@ -123,7 +123,7 @@ static CADT_Dict *dictmalloc(const size_t size, const size_t keysz,
  * because it has accumulated more than 256 collisions */
 static bool dbufresize(CADT_Dict *d) {
   assert(d != NULL);
- if (d->collisions >= 0 && (d->size / d->len) < CADT_DICT_RESIZE_THRESHOLD) {
+  if (d->collisions >= 0 && (d->size / d->len) < CADT_DICT_RESIZE_THRESHOLD) {
     return false;
   }
 
@@ -136,7 +136,7 @@ static bool dbufresize(CADT_Dict *d) {
   } else {
     d->len = d->len * CADT_DICT_SLOW_GROWTH_RATE;
   }
-  d->entries = (Item_)realloc(d->entries, ditemsz(d) * d->len);
+  d->entries = (Item_)realloc(d->entries, ditem_sz(d) * d->len);
   return true;
 }
 
@@ -152,7 +152,7 @@ static bool dput(CADT_Dict *const d, const Item_ item, CADTDictMode mode) {
 
   if (mode == IGNORE) {
   } else if (mode == OVERWRITE) {
-    memcpy(ptr, item, ditemsz(d));
+    memcpy(ptr, item, ditem_sz(d));
   } else {
     return false;
   }
@@ -195,7 +195,7 @@ void CADT_Dict_put(CADT_Dict *d, const void *key, void *val,
   if (d == NULL) {
     return;
   }
-  unsigned char item[ditemsz(d)];
+  unsigned char item[ditem_sz(d)];
 
   memcpy(item, key, d->keysz);
   memcpy(&item[d->keysz], val, d->valsz);
@@ -240,3 +240,10 @@ void CADT_Dict_free(CADT_Dict *d) {
   free(d->entries);
   free(d);
 }
+
+#undef CADT_DICT_RESIZE_THRESHOLD
+#undef CADT_DICT_FAST_GROWTH_SZ_LIMIT
+#undef CADT_DICT_FAST_GROWTH_RATE
+#undef CADT_DICT_SLOW_GROWTH_RATE
+#undef CADT_DICT_MIN_SZ
+#undef EMPTY_ITEM
