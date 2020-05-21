@@ -43,10 +43,7 @@ void CADT_Deque_pushl(CADT_Deque *, void *const val);
 void *CADT_Deque_pop(CADT_Deque *);
 void *CADT_Deque_popl(CADT_Deque *);
 bool CADT_Deque_remove(CADT_Deque *, const void *const val);
-void CADT_Deque_reverse(CADT_Deque *);
-void CADT_Deque_rotate(CADT_Deque *);
-void *const CADT_Deque_begin(CADT_Deque *const);
-void *const CADT_Deque_end(CADT_Deque *const);
+void CADT_Deque_rotate(CADT_Deque *, const size_t n);
 
 /* set.c */
 CADT_Set *CADT_Set_new(const int valsz);

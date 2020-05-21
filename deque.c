@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 static Block_ *newblock_(Block_ other) {
   Block_ *block = (Block_ *)malloc(sizeof(Block_));
@@ -9,6 +10,11 @@ static Block_ *newblock_(Block_ other) {
   block->prev = other.prev;
   block->value = other.value;
   return block;
+}
+
+static void bfree(Block_ *b) {
+  free(b->value);
+  free(b);
 }
 
 #define newblock(...)                                                          \
@@ -95,17 +101,29 @@ void *CADT_Deque_popl(CADT_Deque *d) {
 }
 
 bool CADT_Deque_remove(CADT_Deque *d, const void *const val) {
+  Block_ *current = d->head;
+  while(current != NULL) {
+    if (!memcmp(current->value, val, d->memsz)) {
+      current->prev->next = current->next;
+      current->next->prev = current->prev;
+      free(current->value);
+      return true;
+    }
+    current = current->next;
+  }
+  return false;
 }
 
-void CADT_Deque_reverse(CADT_Deque *) {
+void CADT_Deque_rotate(CADT_Deque *d, const size_t n) {
+  const size_t offset = n % d->size;
+  Block_ *current = d->head;
+  current = current + offset;
+  d->tail->next = d->head;
+  d->head->prev = d->tail;
 
+  d->head = current;
+  d->tail = current->prev;
+  d->head->prev = NULL;
+  d->tail->next = NULL;
 }
 
-void CADT_Deque_rotate(CADT_Deque *);
-
-void *const CADT_Deque_begin(CADT_Deque *const d) {
-  return d->head;
-}
-void *const CADT_Deque_end(CADT_Deque *const d) {
-  return d->tail->next;
-}
