@@ -34,6 +34,7 @@ static inline uint64_t fnv1a_1byte(const uint8_t byte, uint64_t hash) {
   return (byte ^ hash) * prime;
 }
 
+
 static uint64_t hash(const void *const data, size_t nbyte) {
   /* fnv ofset basis */
   uint64_t hash = 0xcbf29ce484222325;
@@ -45,30 +46,37 @@ static uint64_t hash(const void *const data, size_t nbyte) {
   return hash;
 }
 
+
 /* -- helper functions -- */
 
-/* hash address within d->len */
+/* hash address within d->meta.len */
 static size_t dhash_idx(const CADT_Dict *const d, const void *const key) {
-  return hash(key, d->keysz) % d->len;
+  return hash(key, d->meta.keysz) % d->meta.len;
 }
 
-static size_t ditem_sz(const CADT_Dict *const d) { return d->size + d->valsz; }
+
+static size_t ditem_sz(const CADT_Dict *const d) { return d->meta.size + d->meta.valsz; }
+
 
 /* total memory space occupied by d->entries */
 static size_t dbufmemspace(const CADT_Dict *const d) {
-  return ditem_sz(d) * d->len;
+  return ditem_sz(d) * d->meta.len;
 }
+
 
 /* return an unsigned char * point to the given idx of entries in d */
 static Item_ ditem(const CADT_Dict *const d, const size_t idx) {
   return (unsigned char *)d->entries + idx * ditem_sz(d);
 }
 
+
 static unsigned char *dkey(void *item) { return (unsigned char *)item; }
+
 
 static unsigned char *dval(void *item, const size_t offset) {
   return (unsigned char *)item + offset;
 }
+
 
 /* check if a block is empty */
 static bool dempty(const CADT_Dict *const d, const size_t idx) {
@@ -76,12 +84,14 @@ static bool dempty(const CADT_Dict *const d, const size_t idx) {
   return item[0] == EMPTY_ITEM && !memcmp(item, item + 1, ditem_sz(d));
 }
 
+
 /* to check if d[idx] has the same key as item
  * note: if item has empty it return false */
 static bool samekey(const Item_ item, const void *const key,
                     const size_t keysz) {
   return (!memcmp(key, item, keysz));
 }
+
 
 /* -- addressing and mem management -- */
 
@@ -92,9 +102,9 @@ static unsigned char *dfind_open_addr(CADT_Dict *const d, size_t idx,
   assert(d != NULL);
 
   while (!dempty(d, idx)) {
-    idx = hash(&idx, sizeof(size_t)) % d->len;
+    idx = hash(&idx, sizeof(size_t)) % d->meta.len;
     Item_ item = ditem(d, idx);
-    if (samekey(item, key, d->keysz)) {
+    if (samekey(item, key, d->meta.keysz)) {
       return item;
     }
     d->collisions += 1;
@@ -103,29 +113,31 @@ static unsigned char *dfind_open_addr(CADT_Dict *const d, size_t idx,
   return NULL;
 }
 
+
 static CADT_Dict *dictmalloc(const size_t size, const size_t keysz,
                              const size_t valsz) {
   const size_t itemsz = keysz + valsz;
   CADT_Dict *d = (CADT_Dict *)malloc(sizeof(CADT_Dict));
 
-  d->size = size;
-  d->keysz = keysz;
-  d->valsz = valsz;
+  d->meta.size = size;
+  d->meta.keysz = keysz;
+  d->meta.valsz = valsz;
   if (itemsz * size < CADT_DICT_MIN_MEMSZ / 2) {
-    d->len = (size_t)(CADT_DICT_MIN_MEMSZ / itemsz);
+    d->meta.len = (size_t)(CADT_DICT_MIN_MEMSZ / itemsz);
   } else {
-    d->len = 2 * size;
+    d->meta.len = 2 * size;
   }
   d->entries = (Item_)malloc(dbufmemspace(d));
   memset(d->entries, EMPTY_ITEM, dbufmemspace(d));
   return d;
 }
 
+
 /* resize the buffer either when the size fill up 80% of entries or
  * because it has accumulated more than 256 collisions */
 static bool dbufresize(CADT_Dict *d) {
   assert(d != NULL);
-  if (d->collisions >= 0 && (d->size / d->len) < CADT_DICT_RESIZE_THRESHOLD) {
+  if (d->collisions >= 0 && (d->meta.size / d->meta.len) < CADT_DICT_RESIZE_THRESHOLD) {
     return false;
   }
 
@@ -133,14 +145,15 @@ static bool dbufresize(CADT_Dict *d) {
   if (d->collisions < 0) {
     d->collisions = 0;
   }
-  if (d->size < CADT_DICT_FAST_GROWTH_SZ_LIMIT) {
-    d->len = d->len * CADT_DICT_FAST_GROWTH_RATE;
+  if (d->meta.size < CADT_DICT_FAST_GROWTH_SZ_LIMIT) {
+    d->meta.len = d->meta.len * CADT_DICT_FAST_GROWTH_RATE;
   } else {
-    d->len = d->len * CADT_DICT_SLOW_GROWTH_RATE;
+    d->meta.len = d->meta.len * CADT_DICT_SLOW_GROWTH_RATE;
   }
-  d->entries = (Item_)realloc(d->entries, ditem_sz(d) * d->len);
+  d->entries = (Item_)realloc(d->entries, ditem_sz(d) * d->meta.len);
   return true;
 }
+
 
 /* open addressing to resolve collision. get new address by
  * double hashing */
@@ -153,7 +166,7 @@ static bool dput(CADT_Dict *const d, const Item_ item, CADTDictMode mode) {
     return false;
   }
 
-  d->size += 1;
+  d->meta.size += 1;
   dbufresize(d);
 
   switch (mode) {
@@ -170,6 +183,7 @@ static bool dput(CADT_Dict *const d, const Item_ item, CADTDictMode mode) {
   return true;
 }
 
+
 /* lookup element with open addressing.
  * the returned pointer point to */
 static Item_ dget(CADT_Dict *const d, const void *const key) {
@@ -178,8 +192,8 @@ static Item_ dget(CADT_Dict *const d, const void *const key) {
   unsigned char *val = NULL;
   Item_ item = ditem(d, idx);
 
-  while (memcmp(item, key, d->keysz)) {
-    idx = hash(&idx, sizeof(size_t)) % d->len;
+  while (memcmp(item, key, d->meta.keysz)) {
+    idx = hash(&idx, sizeof(size_t)) % d->meta.len;
     /* if hit empty a empty block means key not found */
     if (dempty(d, idx)) {
       return NULL;
@@ -187,9 +201,10 @@ static Item_ dget(CADT_Dict *const d, const void *const key) {
     item = ditem(d, idx);
   }
 
-  val = dval(item, d->keysz);
+  val = dval(item, d->meta.keysz);
   return (Item_)val;
 }
+
 
 /* -- interface -- */
 
@@ -200,6 +215,7 @@ CADT_Dict *CADT_Dict_new(const size_t keysz, const size_t valsz) {
   return dictmalloc(keysz, valsz, 0);
 }
 
+
 void CADT_Dict_put(CADT_Dict *d, const void *key, void *val,
                    CADTDictMode mode) {
   if (d == NULL) {
@@ -207,30 +223,33 @@ void CADT_Dict_put(CADT_Dict *d, const void *key, void *val,
   }
   unsigned char item[ditem_sz(d)];
 
-  memcpy(item, key, d->keysz);
-  memcpy(&item[d->keysz], val, d->valsz);
+  memcpy(item, key, d->meta.keysz);
+  memcpy(&item[d->meta.keysz], val, d->meta.valsz);
   dput(d, item, mode);
 }
+
 
 void *CADT_Dict_get(CADT_Dict *d, const void *key) {
   if (d == NULL || key == NULL) {
     return NULL;
   }
-  return (void *)dval(dget(d, key), d->keysz);
+  return (void *)dval(dget(d, key), d->meta.keysz);
 }
+
 
 size_t CADT_Dict_update(CADT_Dict *d1, CADT_Dict *d2, CADTDictMode mode) {
   if (d1 == NULL || d2 == NULL) {
     return 0;
   }
-  for (size_t i = 0; i < d2->len; i++) {
+  for (size_t i = 0; i < d2->meta.len; i++) {
     if (!dempty(d2, i)) {
       unsigned char *top = ditem(d2, i);
-      CADT_Dict_put(d1, dkey(top), dval(top, d2->keysz), mode);
+      CADT_Dict_put(d1, dkey(top), dval(top, d2->meta.keysz), mode);
     }
   }
-  return d1->size;
+  return d1->meta.size;
 }
+
 
 /* because of open space addressing, keys cannot be deleted */
 bool CADT_Dict_remove(CADT_Dict *d, const void *const key) {
@@ -241,9 +260,10 @@ bool CADT_Dict_remove(CADT_Dict *d, const void *const key) {
   if (val == NULL) {
     return false;
   }
-  memset(val, EMPTY_ITEM, d->valsz);
+  memset(val, EMPTY_ITEM, d->meta.valsz);
   return true;
 }
+
 
 void CADT_Dict_free(CADT_Dict *d) {
   free(d->entries);

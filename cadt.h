@@ -7,6 +7,7 @@ typedef struct CADT_Dict CADT_Dict;
 typedef struct CADT_Vec CADT_Vec;
 typedef struct CADT_Deque CADT_Deque;
 typedef struct CADT_Set CADT_Set;
+typedef struct CADT_Heap CADT_Heap;
 
 /* dict.c */
 typedef enum CADTDictMode {
@@ -56,5 +57,16 @@ CADT_Set *CADT_Set_intersect(CADT_Set *, CADT_Set *);
 CADT_Set *CADT_Set_compliment(CADT_Set *sub, CADT_Set *s);
 size_t CADT_Set_size(const CADT_Set *const);
 size_t CADT_Set_issubset(const CADT_Set *const sub, const CADT_Set *const s);
+
+/* heap.c */
+typedef enum CADTHeapType { MAX, MIN } CADTHeapType;
+
+CADT_Heap *CADT_Heap_new(const size_t capacity, const size_t memsz,
+                         const CADTHeapType,
+                         int (*cmp)(const void *, const void *));
+bool CADT_Heap_insert(CADT_Heap *, const void *val);
+void CADT_Heap_bottomup(CADT_Heap *, const size_t index);
+void CADT_Heap_topdown(CADT_Heap *, const size_t parent_index);
+void *CADT_Heap_popmin(CADT_Heap *);
 
 #endif /* ifndef _CADT */

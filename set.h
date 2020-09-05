@@ -4,11 +4,12 @@
 
 typedef struct CADT_Set {
   void *entries;
-  size_t len;
-  size_t size;
-  size_t memsz;
   char collisions;
+  struct {
+    size_t len;
+    size_t size;
+    size_t memsz;
+  } meta;
 } CADT_Set;
 
 #endif /* ifndef _CADT_SET */
-
