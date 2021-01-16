@@ -48,16 +48,6 @@ bool CADT_Deque_remove(CADT_Deque *, const void *const val);
 void CADT_Deque_rotate(CADT_Deque *, const size_t n);
 void CADT_Deque_free(CADT_Deque *);
 
-/* set.c */
-CADT_Set *CADT_Set_new(const size_t memsz);
-bool CADT_Set_add(CADT_Set *, void *const val);
-size_t *CADT_Set_remove(CADT_Set *, void *const val);
-CADT_Set *CADT_Set_union(CADT_Set *, CADT_Set *);
-CADT_Set *CADT_Set_intersect(CADT_Set *, CADT_Set *);
-CADT_Set *CADT_Set_compliment(CADT_Set *sub, CADT_Set *s);
-size_t CADT_Set_size(const CADT_Set *const);
-size_t CADT_Set_issubset(const CADT_Set *const sub, const CADT_Set *const s);
-
 /* heap.c */
 typedef enum CADTHeapType { MAX, MIN } CADTHeapType;
 

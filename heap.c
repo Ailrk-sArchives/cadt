@@ -24,6 +24,7 @@ CADT_Heap *CADT_Heap_new(const size_t capacity, const size_t memsz,
   h->data = malloc(sizeof(capacity) * memsz);
 
   if (h->data == NULL || h->meta.cmp == NULL) {
+    free(h);
     return NULL;
   }
 
